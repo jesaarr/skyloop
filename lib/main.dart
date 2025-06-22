@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart'; // Firebase Console'dan indirilen otomatik dosya
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MirrorMeApp());
 }
 
@@ -23,9 +27,7 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('MirrorMe Giriş'),
-      ),
+      appBar: AppBar(title: const Text('MirrorMe Giriş')),
       body: Center(
         child: ElevatedButton(
           onPressed: () {

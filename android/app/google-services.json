@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "586307952197",
+    "project_id": "mirrorme-733ea",
+    "storage_bucket": "mirrorme-733ea.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:586307952197:android:9104382d8f22f65eb74d2c",
+        "android_client_info": {
+          "package_name": "com.example.mirror_me"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpoZa54qqvM-3DgFLGAY5CLIDk1a-jFDU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:586307952197:android:14b417587fd4ab63b74d2c",
+        "android_client_info": {
+          "package_name": "com.mirrorme.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpoZa54qqvM-3DgFLGAY5CLIDk1a-jFDU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
