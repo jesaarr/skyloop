@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'screens/login_screen.dart'; // DÜZENLENDİ
+import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase_options.dart'; // flutterfire configure sonrası oluşan dosya
+import 'screens/login_screen.dart';
+import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,8 +19,22 @@ class MirrorMeApp extends StatelessWidget {
     return MaterialApp(
       title: 'MirrorMe',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.indigo),
-      home: const LoginScreen(),
+      home: const AuthWrapper(),
     );
+  }
+}
+
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const LoginScreen();
+    } else {
+      return const HomeScreen();
+    }
   }
 }
