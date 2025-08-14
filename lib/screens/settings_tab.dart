@@ -1,130 +1,278 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class SettingsTab extends StatelessWidget {
-  const SettingsTab({super.key});
+class SettingsTab extends StatefulWidget {
+  final bool isDarkMode;
+  final void Function(bool) onThemeChanged;
 
-  void _logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut();
-    Navigator.of(context).popUntil((route) => route.isFirst);
+  const SettingsTab({
+    super.key,
+    required this.isDarkMode,
+    required this.onThemeChanged,
+  });
+
+  @override
+  State<SettingsTab> createState() => _SettingsTabState();
+}
+
+class _SettingsTabState extends State<SettingsTab> {
+  final TextEditingController _assistantNameController =
+      TextEditingController();
+  String _assistantName = "Asistan";
+
+  bool _currentDark = false; // UI'daki switch için local kopya
+
+  @override
+  void initState() {
+    super.initState();
+    _currentDark = widget.isDarkMode;
+    _loadAssistantName();
   }
 
-  void _launchLicenses(BuildContext context) {
-    showLicensePage(
-      context: context,
-      applicationName: 'MirrorMe',
-      applicationVersion: '1.0.0',
-      applicationLegalese: '© 2025 Skyloop Interactive',
+  Future<void> _loadAssistantName() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _assistantName = prefs.getString('assistantName') ?? _assistantName;
+    });
+  }
+
+  Future<void> _saveAssistantName(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('assistantName', name);
+  }
+
+  void _updateAssistantName() {
+    final name = _assistantNameController.text.trim();
+    if (name.isEmpty) return;
+    _saveAssistantName(name);
+    setState(() => _assistantName = name);
+  }
+
+  Future<void> _logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      // Temadan gelsin: tüm app ile uyumlu
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text('Ayarlar'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 30),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Üst başlık: her zaman mavi arka plan
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              decoration: BoxDecoration(
+                color: Colors.blueAccent.shade100,
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(40),
+                ),
+              ),
+              child: const Column(
+                children: [
+                  Text(
+                    'MirrorMe',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    '“Your Digital Twin”',
+                    style: TextStyle(fontSize: 16, color: Colors.black54),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 30),
+
+            _sectionTitle(context, 'Kişiselleştirme Ayarları'),
+            const SizedBox(height: 20),
+
+            _tile(
+              context: context,
+              icon: Icons.edit,
+              title: 'Asistan İsmi',
+              subtitle: _assistantName,
+              onTap: _showNameDialog,
+            ),
+
+            _tile(
+              context: context,
+              icon: Icons.color_lens,
+              title: 'Tema Seçimi',
+              subtitle: _currentDark ? 'Karanlık Mod' : 'Açık Mod',
+              onTap: () {
+                final next = !_currentDark;
+                setState(() => _currentDark = next);
+                widget.onThemeChanged(next); // tüm app'in temasını değiştir
+              },
+            ),
+
+            const SizedBox(height: 30),
+            _sectionTitle(context, 'Diğer Ayarlar'),
+            const SizedBox(height: 20),
+
+            _tile(
+              context: context,
+              icon: Icons.logout,
+              title: 'Çıkış Yap',
+              subtitle: '',
+              onTap: () => _logout(context),
+              isRed: true,
+            ),
+
+            const SizedBox(height: 50),
+            Text(
+              '© 2025 Skyloop Interactive',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  void _launchSkyloopWebsite() async {
-    const url = 'https://skyloopinteractive.com';
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url));
-    } else {
-      throw 'URL açılamıyor: $url';
-    }
+  Widget _sectionTitle(BuildContext context, String title) {
+    final theme = Theme.of(context);
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: theme.textTheme.bodyLarge?.color,
+      ),
+    );
   }
 
-  Widget _buildListTile({
+  Widget _tile({
     required BuildContext context,
     required IconData icon,
     required String title,
     String? subtitle,
     required VoidCallback onTap,
+    bool isRed = false,
   }) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        leading: Icon(icon, color: Colors.deepPurple),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: subtitle != null
-            ? Text(subtitle, style: const TextStyle(color: Colors.black54))
-            : null,
-        trailing: const Icon(
-          Icons.arrow_forward_ios,
-          size: 16,
-          color: Colors.deepPurple,
+    final theme = Theme.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+        decoration: BoxDecoration(
+          color: isRed
+              ? Colors.red.shade200
+              : (isDark ? Colors.grey.shade800 : theme.cardColor),
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 32,
+              color: isRed
+                  ? Colors.white
+                  : (isDark ? Colors.white : Colors.blueAccent),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isRed
+                          ? Colors.white
+                          : theme.textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                  if (subtitle != null && subtitle.isNotEmpty)
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: theme.textTheme.bodyMedium?.color?.withOpacity(
+                          0.7,
+                        ),
+                        fontSize: 14,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 18,
+              color: isRed
+                  ? Colors.white
+                  : theme.iconTheme.color?.withOpacity(0.7),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ayarlar'),
-        backgroundColor: Colors.deepPurple,
-        elevation: 4,
-        centerTitle: true,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            child: Text(
-              'Skyloop Interactive',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.deepPurple.shade700,
-              ),
-              textAlign: TextAlign.center,
+  void _showNameDialog() {
+    _assistantNameController.text = _assistantName;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Asistan İsmini Değiştir'),
+          content: TextField(
+            controller: _assistantNameController,
+            decoration: const InputDecoration(hintText: 'Yeni ismi girin'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Vazgeç'),
             ),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 40),
-            child: Divider(thickness: 2),
-          ),
-          _buildListTile(
-            context: context,
-            icon: Icons.language,
-            title: 'Dil Değiştir (Şimdilik devre dışı)',
-            onTap: () {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('Çok yakında...')));
-            },
-          ),
-          _buildListTile(
-            context: context,
-            icon: Icons.link,
-            title: 'Skyloop Web Sitesi',
-            onTap: _launchSkyloopWebsite,
-          ),
-          _buildListTile(
-            context: context,
-            icon: Icons.info_outline,
-            title: 'Lisanslar',
-            onTap: () => _launchLicenses(context),
-          ),
-          _buildListTile(
-            context: context,
-            icon: Icons.logout,
-            title: 'Çıkış Yap',
-            onTap: () => _logout(context),
-          ),
-          const SizedBox(height: 24),
-          Center(
-            child: Text(
-              '© 2025 Skyloop Interactive',
-              style: TextStyle(
-                color: Colors.deepPurple.shade200,
-                fontWeight: FontWeight.w500,
-                fontSize: 12,
-              ),
+            TextButton(
+              onPressed: () {
+                _updateAssistantName();
+                Navigator.of(context).pop();
+              },
+              child: const Text('Kaydet'),
             ),
-          ),
-        ],
-      ),
+          ],
+        );
+      },
     );
   }
 }
